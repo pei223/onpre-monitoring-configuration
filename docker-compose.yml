@@ -1,0 +1,46 @@
+version: "3.3"
+
+networks:
+  monitoring-network:
+    external: true
+
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      # https://grafana.com/docs/loki/latest/setup/install/docker/
+      # https://hub.docker.com/r/grafana/loki
+      - './loki-data:/loki'
+      - './loki-config.yaml:/mnt/config/loki-config.yaml'
+    networks:
+      - monitoring-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--web.enable-remote-write-receiver"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      # https://prometheus.io/docs/prometheus/latest/installation/#save-your-prometheus-data
+      - './prometheus.yml:/etc/prometheus/prometheus.yml'
+      - './prometheus-data:/prometheus'
+    restart: always
+    networks:
+      - monitoring-network
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - './grafana-data:/var/lib/grafana'
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - monitoring-network
